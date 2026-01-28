@@ -1,12 +1,12 @@
 
 """
-File: example.py
+File: 1.plot.evoked.py
 Author: Chuncheng Zhang
 Date: 2026-01-26
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    Read raw file for example.
+    Read raw files, concat them and plot evoked.
 
 Functions:
     1. Requirements and constants
@@ -29,6 +29,10 @@ SUBJ = 'S02'
 MODE = 'MEG'
 
 # %%
+OUTPUT_DIR = Path(f'output/example/{MODE}-{SUBJ}')
+OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+
+# %%
 
 
 def read_raw(path: Path):
@@ -46,11 +50,18 @@ raw_folder = Path('data/RSVP_dataset/processed_data') / f'{MODE}_{SUBJ}'
 block_files = list(raw_folder.glob('block_*_ica-raw.fif'))
 block_files.sort()
 
-raws = [read_raw(e) for e in block_files[:1]]
+# Beware that the 1st file is incorrect.
+raws = [read_raw(e) for e in block_files[1:]]
+
+if MODE == 'MEG':
+    dev_head_t = raws[0].info['dev_head_t']
+    for raw in raws:
+        raw.info['dev_head_t'] = dev_head_t
 print(raws)
 
+
 # %%
-raw = iter(raws).__next__()
+raw = mne.concatenate_raws(raws)
 
 # Notch at 10 Hz
 # raw.load_data()
@@ -72,16 +83,30 @@ l_freq, h_freq = 0.1, 40
 
 epochs = mne.Epochs(raw, events, event_id, tmin=-0.2,
                     tmax=1.0, decim=int(raw.info['sfreq'] / 200))
-epochs = epochs['1']
+epochs = mne.concatenate_epochs([epochs['1'], epochs['3']])
+print(epochs)
 epochs.load_data()
 epochs.filter(l_freq=l_freq, h_freq=h_freq, n_jobs=n_jobs)
-
 print(epochs)
-evoked = epochs.average()
-evoked.plot_joint()
-plt.show()
 
 # %%
+print(epochs)
+for evt in ['1', '3']:
+    evoked = epochs[evt].average()
+    fig = evoked.plot_joint(title=f'{evt=}', show=False)
+    fig.savefig(OUTPUT_DIR / f'evoked-{evt}.png')
+    plt.close(fig)
+
+# %%
+hilbert = epochs.copy().apply_hilbert(envelope=True)
+hilbert.apply_baseline()
+print(hilbert)
+
+for evt in ['1', '3']:
+    evoked = hilbert[evt].average()
+    fig = evoked.plot_joint(title=f'{evt=}', show=False)
+    fig.savefig(OUTPUT_DIR / f'hilbert-evoked-{evt}.png')
+    plt.close(fig)
 
 # %% ---- 2026-01-26 ------------------------
 # Function and class
