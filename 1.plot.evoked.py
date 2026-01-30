@@ -26,10 +26,15 @@ from util.summary_data import summarize_dataset
 
 # %%
 SUBJ = 'S02'
-MODE = 'MEG'
+MODE = 'EEG'
+
+if len(sys.argv) > 1:
+    _, SUBJ, MODE = sys.argv
+
+logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 
 # %%
-OUTPUT_DIR = Path(f'output/example/{MODE}-{SUBJ}')
+OUTPUT_DIR = Path(f'output/step-1/{MODE}-{SUBJ}')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %%
@@ -41,6 +46,10 @@ def read_raw(path: Path):
         raw.pick('mag')
     elif MODE == 'EEG':
         raw.pick([e for e in raw.ch_names if e not in ['CB1', 'CB2']])
+        montage = mne.channels.read_dig_fif('output/eeg-montage-dig.fif')
+        montage.ch_names = [e.upper() for e in montage.ch_names]
+        raw.rename_channels({e: e.upper() for e in raw.ch_names})
+        raw.set_montage(montage)
     return raw
 
 
@@ -87,6 +96,7 @@ epochs = mne.concatenate_epochs([epochs['1'], epochs['3']])
 print(epochs)
 epochs.load_data()
 epochs.filter(l_freq=l_freq, h_freq=h_freq, n_jobs=n_jobs)
+epochs.save(OUTPUT_DIR / f'1-3-epo.fif')
 print(epochs)
 
 # %%
@@ -99,6 +109,7 @@ for evt in ['1', '3']:
 
 # %%
 hilbert = epochs.copy().apply_hilbert(envelope=True)
+hilbert.save(OUTPUT_DIR / f'1-3-hilbert-epo.fif')
 hilbert.apply_baseline()
 print(hilbert)
 
