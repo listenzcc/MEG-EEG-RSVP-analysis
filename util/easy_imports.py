@@ -1,4 +1,6 @@
 # %%
+import os
+import sys
 import mne
 import joblib
 import numpy as np

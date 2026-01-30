@@ -28,6 +28,11 @@ from util.summary_data import summarize_dataset
 SUBJ = 'S02'
 MODE = 'MEG'
 
+if len(sys.argv) > 1:
+    _, SUBJ, MODE = sys.argv
+
+logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
+
 # %%
 OUTPUT_DIR = Path(f'output/example/{MODE}-{SUBJ}')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -87,6 +92,7 @@ epochs = mne.concatenate_epochs([epochs['1'], epochs['3']])
 print(epochs)
 epochs.load_data()
 epochs.filter(l_freq=l_freq, h_freq=h_freq, n_jobs=n_jobs)
+epochs.save(OUTPUT_DIR / f'1-3-epo.fif')
 print(epochs)
 
 # %%
@@ -99,6 +105,7 @@ for evt in ['1', '3']:
 
 # %%
 hilbert = epochs.copy().apply_hilbert(envelope=True)
+hilbert.save(OUTPUT_DIR / f'1-3-hilbert-epo.fif')
 hilbert.apply_baseline()
 print(hilbert)
 
