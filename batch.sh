@@ -8,8 +8,8 @@ echo python env
 which python
 python --version
 
-# script=1.plot.evoked.py
-script=2.detect.erp.py
+script=1.1.plot.evoked.py
+# script=2.detect.erp.py
 mode=EEG
 
 python $script S01 $mode &
