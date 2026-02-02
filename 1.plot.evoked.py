@@ -33,6 +33,11 @@ if len(sys.argv) > 1:
 
 logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 
+if len(sys.argv) > 1:
+    _, SUBJ, MODE = sys.argv
+
+logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
+
 # %%
 OUTPUT_DIR = Path(f'output/step-1/{MODE}-{SUBJ}')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
