@@ -25,11 +25,11 @@ from util.summary_data import summarize_dataset
 # print(summarize_dataset(Path("data/RSVP_dataset/processed_data")))
 
 # %%
-SUBJ = 'S02'
-MODE = 'EEG'
+SUBJ = 'S03'
+MODE = 'MEG'
 
-if len(sys.argv) > 1:
-    _, SUBJ, MODE = sys.argv
+# if len(sys.argv) > 1:
+#     _, SUBJ, MODE = sys.argv
 
 logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 
@@ -80,21 +80,24 @@ events, event_id = mne.events_from_annotations(raw)
 logger.info(raw.info)
 
 # Mark the '4' events for dirty '2' events
+
+
 def remark_events(events, event_id):
-    event_id = {str(k):k for k in [1, 2, 3, 4]}
+    event_id = {str(k): k for k in [1, 2, 3, 4]}
     events_target = np.array([e for e in events if e[-1] in [1, 3]])
     events_normal = np.array([e for e in events if e[-1] in [2]])
     for rec in tqdm(events_target):
         t, _, e = rec
-        m = (events_normal[:, 0] < t+500) * (events_normal[:, 0] > t-200)
+        m = (events_normal[:, 0] < t+1500) * (events_normal[:, 0] > t-500)
         events_normal[m, -1] = 4
 
     events = np.concat([events_target, events_normal])
     events = np.array(sorted(events, key=lambda e: e[0]))
     return events, event_id
 
+
 events, event_id = remark_events(events, event_id)
-detail = {e:events[events[:, -1]==e].shape for e in event_id.values()}
+detail = {e: events[events[:, -1] == e].shape for e in event_id.values()}
 logger.debug(f'Remark events to 1, 2, 3, 4, {detail=}')
 
 
@@ -104,12 +107,25 @@ logger.debug(f'Remark events to 1, 2, 3, 4, {detail=}')
 # plt.show()
 
 # %%
-tmin, tmax = -0.5, 1.0
+tmin, tmax = -0.5, 1.5
 l_freq, h_freq = 0.1, 40
+
+if MODE == 'MEG':
+    reject = dict(
+        mag=4e-12,      # unit: T (magnetometers)
+    )
+elif MODE == 'EEG':
+    reject = dict(
+        eeg=40e-6,      # unit: V (EEG channels)
+    )
+else:
+    raise ValueError(f'Incorrect {MODE=}')
 
 epochs = mne.Epochs(raw, events, event_id,
                     tmin=tmin, tmax=tmax,
-                    decim=int(raw.info['sfreq'] / 200))
+                    decim=int(raw.info['sfreq'] / 200),
+                    reject=reject,
+                    )
 
 # Only interested in 1, 2, 3 events
 epochs = mne.concatenate_epochs([epochs['1'], epochs['2'], epochs['3']])

@@ -30,7 +30,7 @@ if len(sys.argv) > 1:
 logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 
 DATA_DIR = Path('./output/step-1') / f'{MODE}-{SUBJ}'
-OUTPUT_DIR = Path('./output/step-2') / f'{MODE}-{SUBJ}'
+OUTPUT_DIR = Path('./output/step-2-with-filter') / f'{MODE}-{SUBJ}'
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %% ---- 2026-02-02 ------------------------
@@ -54,6 +54,12 @@ print(evoked3)
 # %%
 # Project for keypress artificial
 
+# Remove low freq drift of ssvep
+evoked2 = evoked2.filter(l_freq=4, h_freq=40)
+
+proj2 = mne.compute_proj_evoked(evoked2, n_mag=3, n_eeg=3)
+print(proj2)
+
 # Project using epochs
 # e = epochs13['3'].copy()
 # e.crop(0, 0.1)
@@ -61,10 +67,13 @@ print(evoked3)
 
 # Project using evoked
 # ! It seems better
+evoked = evoked3.copy()
+evoked.add_proj(proj2)
 e = evoked3.copy()
 e.crop(0, 0.1)
 proj = mne.compute_proj_evoked(e, n_mag=3, n_eeg=3)
 print(proj)
+
 
 # %%
 # Plot clear ERP
@@ -78,8 +87,9 @@ for d in data:
 epochs = mne.EpochsArray(data, epochs.info, events=epochs.events,
                          event_id=epochs.event_id, tmin=epochs.tmin)
 # Project key pressing artificial
-epochs.add_proj(proj)
+epochs.add_proj(proj + proj2)
 print(epochs)
+
 
 epochs.save(OUTPUT_DIR / 'epochs-clean-ERP-1-epo.fif', overwrite=True)
 
@@ -93,14 +103,13 @@ plt.close(fig)
 
 # %%
 evoked = evoked1.copy()
-evoked.data = evoked.data - evoked2.data
-# evoked1.plot_joint(show=False, title='evoked-1')
-# evoked2.plot_joint(show=False, title='evoked-2')
+evoked.add_proj(proj2)
 fig = evoked.plot_joint(show=False, title='evoked')
 fig.savefig(OUTPUT_DIR / 'evoked-1-remove-ssvep.png')
 plt.close(fig)
 
-evoked.add_proj(proj)
+evoked = evoked1.copy()
+evoked.add_proj(proj + proj2)
 fig = evoked.plot_joint(show=False, title='evoked(proj)')
 fig.savefig(OUTPUT_DIR / 'evoked-1-remove-ssvep-proj.png')
 plt.close(fig)
