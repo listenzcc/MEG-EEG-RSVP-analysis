@@ -55,6 +55,7 @@ print(evoked3)
 # Project for keypress artificial
 
 # Remove low freq drift of ssvep
+# ! The filter is good
 evoked2 = evoked2.filter(l_freq=4, h_freq=40)
 
 proj2 = mne.compute_proj_evoked(evoked2, n_mag=3, n_eeg=3)
@@ -97,6 +98,11 @@ epochs.save(OUTPUT_DIR / 'epochs-clean-ERP-1-epo.fif', overwrite=True)
 evoked = epochs.average()
 fig = evoked.plot_joint(show=False, title='evoked-clean-ERP')
 fig.savefig(OUTPUT_DIR / 'evoked-clean-ERP-1.png')
+plt.close(fig)
+
+evoked.detrend(order=1)
+fig = evoked.plot_joint(show=False, title='evoked-clean-ERP')
+fig.savefig(OUTPUT_DIR / 'evoked-clean-ERP-1-detrend.png')
 plt.close(fig)
 # plt.show()
 

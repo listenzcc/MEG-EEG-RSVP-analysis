@@ -28,8 +28,8 @@ from util.summary_data import summarize_dataset
 SUBJ = 'S03'
 MODE = 'MEG'
 
-# if len(sys.argv) > 1:
-#     _, SUBJ, MODE = sys.argv
+if len(sys.argv) > 1:
+    _, SUBJ, MODE = sys.argv
 
 logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 

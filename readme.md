@@ -16,6 +16,10 @@ the events are
 
 ### ERP
 
+### LPP (Late Positive Potential)
+
+The LPP is found in both EEG and MEG.
+
 ### TFR
 
 ## Source Space Analysis
