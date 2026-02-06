@@ -145,10 +145,14 @@ if MODE == 'EEG':
 
 epochs.filter(l_freq=l_freq, h_freq=h_freq, n_jobs=n_jobs)
 
-
-# Save 1, 3 epochs
+# Save 1, 2, 3 epochs
 fname = OUTPUT_DIR / f'epochs-1-3-epo.fif'
 _epochs = mne.concatenate_epochs([epochs['1'], epochs['3']])
+_epochs.save(fname, overwrite=True)
+logger.debug(f'Saved {fname=}, {_epochs=}')
+
+fname = OUTPUT_DIR / f'epochs-2-epo.fif'
+_epochs = mne.concatenate_epochs([epochs['2']])
 _epochs.save(fname, overwrite=True)
 logger.debug(f'Saved {fname=}, {_epochs=}')
 

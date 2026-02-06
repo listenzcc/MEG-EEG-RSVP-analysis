@@ -27,6 +27,8 @@ MODE = 'MEG'
 if len(sys.argv) > 1:
     _, MODE = sys.argv
 
+logger.info(f'Run {__file__} for {MODE=}')
+
 # %%
 DATA_DIR = Path('./output/step-2')
 
