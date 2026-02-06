@@ -30,7 +30,7 @@ if len(sys.argv) > 1:
 logger.info(f'Run {__file__} for {SUBJ=}, {MODE=}')
 
 DATA_DIR = Path('./output/step-1') / f'{MODE}-{SUBJ}'
-OUTPUT_DIR = Path('./output/step-2-with-filter') / f'{MODE}-{SUBJ}'
+OUTPUT_DIR = Path('./output/step-2') / f'{MODE}-{SUBJ}'
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %% ---- 2026-02-02 ------------------------

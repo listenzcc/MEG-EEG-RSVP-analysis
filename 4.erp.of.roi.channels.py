@@ -24,8 +24,11 @@ from util.easy_imports import *
 MODE = 'EEG'
 MODE = 'MEG'
 
+if len(sys.argv) > 1:
+    _, MODE = sys.argv
+
 # %%
-DATA_DIR = Path('./output/step-2-with-filter')
+DATA_DIR = Path('./output/step-2')
 
 OUTPUT_DIR = Path('./output/step-4')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)

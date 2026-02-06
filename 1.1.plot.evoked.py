@@ -72,6 +72,11 @@ print(raws)
 # %%
 raw = mne.concatenate_raws(raws)
 
+
+# if MODE == 'EEG':
+#     raw.load_data()
+#     raw = raw.set_eeg_reference(ref_channels=['M1', 'M2'])
+
 # Notch at 10 Hz
 # raw.load_data()
 # raw = raw.notch_filter(freqs=[10, 20, 30, 40], notch_widths=1, n_jobs=n_jobs)
@@ -116,7 +121,7 @@ if MODE == 'MEG':
     )
 elif MODE == 'EEG':
     reject = dict(
-        eeg=40e-6,      # unit: V (EEG channels)
+        # eeg=40e-6,      # unit: V (EEG channels)
     )
 else:
     raise ValueError(f'Incorrect {MODE=}')
@@ -133,18 +138,24 @@ logger.debug(f'Generated {epochs=}')
 
 # It may take long since the epochs are so many
 epochs.load_data()
+
+if MODE == 'EEG':
+    # epochs = epochs.set_eeg_reference(ref_channels=['M1', 'M2'])
+    epochs = epochs.set_eeg_reference(ref_channels='average')
+
 epochs.filter(l_freq=l_freq, h_freq=h_freq, n_jobs=n_jobs)
+
 
 # Save 1, 3 epochs
 fname = OUTPUT_DIR / f'epochs-1-3-epo.fif'
 _epochs = mne.concatenate_epochs([epochs['1'], epochs['3']])
-_epochs.save(fname)
+_epochs.save(fname, overwrite=True)
 logger.debug(f'Saved {fname=}, {_epochs=}')
 
 # Plot and save evoked
 for evt in ['1', '2', '3']:
     evoked = epochs[evt].average()
-    evoked.save(OUTPUT_DIR / f'evoked-{evt}-ave.fif')
+    evoked.save(OUTPUT_DIR / f'evoked-{evt}-ave.fif', overwrite=True)
 
     fig = evoked.plot_joint(title=f'{evt=}', show=False)
     fig.savefig(OUTPUT_DIR / f'evoked-{evt}.png')
@@ -156,13 +167,13 @@ hilbert = epochs.copy().apply_hilbert(envelope=True)
 # Save 1, 3 hilbert epochs
 fname = OUTPUT_DIR / f'epochs-1-3-hilbert-epo.fif'
 _hilbert = mne.concatenate_epochs([hilbert['1'], hilbert['3']])
-_hilbert.save(fname)
+_hilbert.save(fname, overwrite=True)
 logger.debug(f'Saved {fname=}, {_hilbert=}')
 
 # Plot and save hilbert evoked
 for evt in ['1', '2', '3']:
     evoked = hilbert[evt].average()
-    evoked.save(OUTPUT_DIR / f'hilbert-evoked-{evt}-ave.fif')
+    evoked.save(OUTPUT_DIR / f'hilbert-evoked-{evt}-ave.fif', overwrite=True)
 
     evoked.apply_baseline()
     fig = evoked.plot_joint(title=f'{evt=}', show=False)
