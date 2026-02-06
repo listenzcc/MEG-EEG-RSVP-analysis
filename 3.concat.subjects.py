@@ -18,9 +18,10 @@ Functions:
 
 # %% ---- 2026-02-05 ------------------------
 # Requirements and constants
-from tensorly.decomposition import tucker
-import tensorly as tl
 from util.easy_imports import *
+
+import tensorly as tl
+from tensorly.decomposition import tucker
 
 # %%
 MODE = 'MEG'
