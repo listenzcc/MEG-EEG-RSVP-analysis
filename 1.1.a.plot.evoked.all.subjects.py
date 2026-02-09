@@ -54,9 +54,18 @@ print(epochs)
 # Pending
 for evt in ['1', '2', '3']:
     evoked = epochs[evt].average()
+    evoked.save(OUTPUT_DIR / f'{MODE}-{evt}-ave.fif', overwrite=True)
+
     fig = evoked.plot_joint(show=False)
     fig.savefig(OUTPUT_DIR / f'{MODE}-{evt}.png')
     plt.title(f'{MODE}-{evt}')
+    plt.close(fig)
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 12))
+    evoked.plot_topo(axes=ax, show=False)
+    ax.set_title(f'{MODE}-{evt}')
+    fig.tight_layout()
+    fig.savefig(OUTPUT_DIR / f'{MODE}-{evt}-topo.png')
     plt.close(fig)
 
 
