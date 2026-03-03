@@ -42,9 +42,7 @@ def get_picks(mode):
 
 # %% ---- 2026-02-28 ------------------------
 # Play ground
-
-fig_eeg, axes_eeg = plt.subplots(4, 6, figsize=(16, 8))
-fig_meg, axes_meg = plt.subplots(4, 6, figsize=(16, 8))
+cache = {}
 
 for mode, (i, evt) in product(['EEG', 'MEG'], enumerate(['1', '2', '3', '1p'])):
     print(mode, i, evt)
@@ -67,6 +65,27 @@ for mode, (i, evt) in product(['EEG', 'MEG'], enumerate(['1', '2', '3', '1p'])):
         n_cycles=n_cycles,
         n_jobs=n_jobs,
         return_itc=False)
+
+    cache[(mode, evt)] = (evoked, tfr)
+
+print(cache)
+
+# %%
+fig_meg, axes_meg = plt.subplots(5, 6, figsize=(16, 10))
+fig_eeg, axes_eeg = plt.subplots(5, 6, figsize=(16, 10))
+
+
+for mode, (i, evt) in product(['EEG', 'MEG'], enumerate(['1', '2', '3', '1p', 'r-p'])):
+    # Time frequency analysis
+    # I want the n_cycles as large as possible
+
+    if evt == 'r-p':
+        _, tfr_p = cache[(mode, '1p')]
+        _, tfr_r = cache[(mode, '1')]
+        tfr = tfr_p.copy()
+        tfr.data = tfr_r.data - tfr_p.data
+    else:
+        _, tfr = cache[(mode, evt)]
 
     for j, ch_name in enumerate(tfr.ch_names):
         if mode == 'EEG':
