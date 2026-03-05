@@ -52,7 +52,7 @@ for i, mode in enumerate(['EEG', 'MEG']):
     n_cycles = [int(f*t*0.5) for f in freqs]
 
     tfr = mne.time_frequency.tfr_morlet(
-        evoked, freqs=np.arange(2, 31, 1), n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
+        evoked, freqs=freqs, n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
 
     # I want the values of 10Hz
     ax = axes[0, i]
@@ -96,7 +96,7 @@ for i, mode in enumerate(['EEG', 'MEG']):
     n_cycles = [int(f*t*0.5) for f in freqs]
 
     tfr = mne.time_frequency.tfr_morlet(
-        evoked, freqs=np.arange(2, 31, 1), n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
+        evoked, freqs=freqs, n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
 
     # I want the values of <10 Hz
     ax = axes[i]
@@ -134,7 +134,7 @@ for i, mode in enumerate(['EEG', 'MEG']):
         n_cycles = [int(f*t*0.5) for f in freqs]
 
         tfr = mne.time_frequency.tfr_morlet(
-            evoked, freqs=np.arange(2, 31, 1), n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
+            evoked, freqs=freqs, n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
 
         # I want the values of <10 Hz
         ax = axes[j, i]
@@ -151,9 +151,51 @@ for i, mode in enumerate(['EEG', 'MEG']):
 fig.tight_layout()
 fig.savefig(OUTPUT_DIR / f'{evt}-freqs-topomap.png', dpi=300)
 plt.show()
+
+# %%
+# Plot detail of 1 (projected) event
+times = np.arange(-0.1, 1.1, 0.1)
+n_times = len(times)
+fig, axes = plt.subplots(2, n_times, figsize=(n_times*2, 4))
+
+for i, mode in enumerate(['MEG', 'EEG']):
+    evoked = mne.read_evokeds(
+        DATA_DIR1 / mode / f'{evt}-withproj-epo-ave.fif')[0]
+
+    freqs = np.arange(2, 31, 1)
+    t = evoked.times[-1] - evoked.times[0]
+    n_cycles = [int(f*t*0.5) for f in freqs]
+    tfr = mne.time_frequency.tfr_morlet(
+        evoked, freqs=freqs, n_cycles=n_cycles, n_jobs=n_jobs, return_itc=False)
+    values = np.mean(
+        np.mean(tfr.data[:, [e < 10 for e in freqs], :], axis=1), axis=1)
+    vlim = [np.min(values)*0.8, np.max(values)*3]
+
+    t_segs = np.linspace(evoked.times[0], evoked.times[-1], n_times+1)
+    for j, t1 in enumerate(times):
+        t2 = t1+0.1
+        ax = axes[i, j]
+        _tfr = tfr.copy()
+        _tfr.crop(tmin=t1, tmax=t2)
+        values = np.mean(
+            np.mean(_tfr.data[:, [e < 10 for e in freqs], :], axis=1), axis=1)
+        im, cn = mne.viz.plot_topomap(
+            values, evoked.info, vlim=vlim, axes=ax, show=False)
+        ax.set_title(f'{t1:.2f} ~ {t2:.2f}')
+        fig.colorbar(im, ax=ax, orientation='vertical', shrink=0.5)
+
+suptitle = 'Time evolution of 1(proj) of MEG and EEG'
+fig.suptitle(suptitle)
+fig.tight_layout()
+fig.savefig(OUTPUT_DIR / f'{suptitle}.png')
+plt.show()
+
+
 # %% ---- 2026-03-04 ------------------------
 # Pending
 
 
 # %% ---- 2026-03-04 ------------------------
 # Pending
+
+# %%
