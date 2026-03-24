@@ -50,8 +50,12 @@ evoked = mne.read_evokeds(
     DATA_DIR1 / mode / f'{evt}-withproj-epo-ave.fif')[0]
 
 evoked.filter(l_freq=0.01, h_freq=8)
-print(evoked)
 
+if mode == 'EEG':
+    evoked.set_eeg_reference('average', projection=True)
+    assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
+
+print(evoked)
 
 # 4. 创建正向算子（需要设置电极位置）
 # 计算电极位置与模板的配准
@@ -80,12 +84,21 @@ print(f"正向解计算完成: {fwd}")
 
 # 6. 计算噪声协方差矩阵
 # 如果没有噪声数据，可以创建单位协方差
+# cov = mne.Covariance(
+#     data=np.eye(len(evoked.info['ch_names'])),
+#     names=evoked.info['ch_names'],
+#     bads=[],
+#     projs=[],
+#     nfree=1e10
+# )
+# 使用0秒之前的数据计算协方差矩阵
+baseline_data = evoked.copy().crop(evoked.tmin, 0).data
 cov = mne.Covariance(
-    data=np.eye(len(evoked.info['ch_names'])),
+    data=np.cov(baseline_data),
     names=evoked.info['ch_names'],
     bads=[],
     projs=[],
-    nfree=1e10
+    nfree=baseline_data.shape[1]
 )
 
 # 7. 创建逆算子
