@@ -45,7 +45,7 @@ bem = os.path.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
 # 3. 加载evoked数据
 evt = '1'
-mode = 'MEG'
+mode = 'EEG'
 evoked = mne.read_evokeds(
     DATA_DIR1 / mode / f'{evt}-withproj-epo-ave.fif')[0]
 
