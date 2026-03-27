@@ -1,11 +1,12 @@
 """
-File: source-estimation.py
+File: source-estimation-further.py
 Author: Chuncheng Zhang
 Date: 2026-03-19
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
     Source estimation for evoked.
+    Further analysis for P300 and diff.
 
 Functions:
     1. Requirements and constants
@@ -45,9 +46,11 @@ bem = os.path.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
 # 3. 加载evoked数据
 evt = '1'
-mode = 'EEG'
+mode = 'MEG'
 if len(sys.argv) > 1:
-    mode = sys.argv[1].upper()
+    m = sys.argv[1].upper()
+    if m in ['MEG', 'EEG']:
+        mode = sys.argv[1].upper()
 print(f'{mode=}')
 
 evoked = mne.read_evokeds(
@@ -130,16 +133,104 @@ stc = apply_inverse(
 
 print(f"溯源结果: {stc}")
 
+# %%
 # 9. 可视化结果
+# stc.plot(hemi='both', subjects_dir=subjects_dir, subject='fsaverage')
+# input('Press enter to escape.')
+# exit(0)
 
-# 9.1 绘制源时间序列
-fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-# 选择峰值时间点
-peak_time = evoked.get_peak()[1]
-stc.plot(hemi='both', subjects_dir=subjects_dir, subject='fsaverage')
+# %%
 
-input('Press enter to escape.')
-exit(0)
+
+def window_aggregate(stc, tmin, tmax, mode='mean_abs'):
+    times = stc.times
+    mask = (times >= tmin) & (times <= tmax)
+
+    data = stc.data[:, mask]
+
+    if mode == 'mean_abs':
+        out = np.mean(np.abs(data), axis=1)
+    elif mode == 'mean':
+        out = np.mean(data, axis=1)
+    elif mode == 'max_abs':
+        out = np.max(np.abs(data), axis=1)
+    else:
+        raise ValueError(mode)
+
+    return out  # shape: (n_vertices,)
+
+
+A1 = window_aggregate(stc, 0.2, 0.4)
+A2 = window_aggregate(stc, 0.4, 0.6)
+D = A2 - A1
+
+
+# %%
+labels = mne.read_labels_from_annot(
+    subject='fsaverage',
+    parc='aparc.a2009s',
+    subjects_dir=subjects_dir
+)
+
+print(labels)
+print(D.shape)
+print(stc.vertices[0].size)
+
+# %%
+
+
+def make_stc_map(values, stc):
+    return mne.SourceEstimate(
+        values[:, None],
+        vertices=stc.vertices,
+        tmin=0,
+        tstep=1
+    )
+
+
+def roi_reduce_safe(stc_map, labels):
+    roi_dict = {}
+
+    for label in labels:
+        if label.name.startswith('Unknown'):
+            continue
+
+        sub_stc = stc_map.in_label(label)
+
+        if sub_stc.data.size == 0:
+            continue  # 这个label在当前src中没有点
+
+        roi_dict[label.name] = sub_stc.data.mean()
+
+    return roi_dict
+
+
+stc_A1 = make_stc_map(A1, stc)
+stc_A2 = make_stc_map(A2, stc)
+stc_D = make_stc_map(D,  stc)
+
+roi_A1 = roi_reduce_safe(stc_A1, labels)
+roi_A2 = roi_reduce_safe(stc_A2, labels)
+roi_D = roi_reduce_safe(stc_D,  labels)
+
+
+print(roi_A1)
+print(roi_A2)
+print(roi_D)
+
+# %%
+brain = stc_A1.plot(hemi='lh', subjects_dir=subjects_dir,
+                    subject='fsaverage', backend='matplotlib')
+
+brain = stc_A2.plot(hemi='lh', subjects_dir=subjects_dir,
+                    subject='fsaverage', backend='matplotlib')
+
+brain = stc_D.plot(hemi='lh', subjects_dir=subjects_dir,
+                   subject='fsaverage', backend='matplotlib')
+
+# %%
+
+# %%
 
 # %% ---- 2026-03-19 ------------------------
 # Pending
