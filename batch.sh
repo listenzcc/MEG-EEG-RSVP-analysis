@@ -8,7 +8,7 @@ echo python env
 which python
 python --version
 
-script=pipeline/1.raw.to.epochs.py
+script=pipeline/decoding.1.raw.to.epochs.py
 
 mode=EEG
 python $script S01 $mode &
