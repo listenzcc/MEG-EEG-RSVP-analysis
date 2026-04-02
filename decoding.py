@@ -60,7 +60,12 @@ print(epochs1, epochs2, epochs3, epochs4)
 # Pending
 
 # 合并所有epochs数据
-epochs_all = mne.concatenate_epochs([epochs1, epochs2, epochs3, epochs4])
+epochs_all = mne.concatenate_epochs([
+    epochs1,
+    epochs2,
+    epochs3,
+    # epochs4
+])
 
 # 获取数据X和标签y
 X = epochs_all.get_data()  # shape: (n_epochs, n_channels, n_times)
@@ -78,7 +83,8 @@ pipeline = make_pipeline(
 )
 
 # 执行交叉验证
-scores = cross_val_score(pipeline, epochs_all, y, cv=cv, scoring='accuracy')
+scores = cross_val_score(pipeline, epochs_all, y, cv=cv,
+                         scoring='accuracy', n_jobs=-1)
 
 print(f"10折交叉验证准确率: {scores}")
 print(f"平均准确率: {scores.mean():.4f} ± {scores.std():.4f}")
