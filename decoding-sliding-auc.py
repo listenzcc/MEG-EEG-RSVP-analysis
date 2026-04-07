@@ -67,8 +67,6 @@ epochs2 = mne.read_epochs(DATA_DIR / 'epochs-2-epo.fif', preload=True)
 epochs_all = mne.concatenate_epochs([
     epochs1,
     epochs2,
-    # epochs3,
-    # epochs4
 ])
 print(epochs_all)
 
@@ -82,13 +80,6 @@ clf = make_pipeline(
     StandardScaler(),
     SVC(kernel='rbf')
 )
-
-# sliding estimator
-# time_decod = SlidingEstimator(
-#     clf,
-#     scoring='accuracy',
-#     n_jobs=-1
-# )
 
 time_decod = SlidingEstimator(
     clf,
@@ -121,14 +112,6 @@ exit(0)
 
 # %%
 
-# times = epochs_all.times
-
-# plt.plot(times, scores_mean)
-# plt.axhline(0.5, linestyle='--')  # 二分类 chance level
-# plt.xlabel('Time (s)')
-# plt.ylabel('ROC AUC')
-# plt.title('ROC AUC over Time')
-# plt.show()
 
 # %% ---- 2026-03-31 ------------------------
 # Pending
