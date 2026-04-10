@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2026-04-03 ------------------------
 # Requirements and constants
+import pickle
 import json
 from mne.datasets import fetch_fsaverage
 from mne.decoding import SlidingEstimator, cross_val_multiscore, Vectorizer
@@ -57,8 +58,8 @@ epochs2 = mne.read_epochs(DATA_DIR / 'epochs-2-epo.fif', preload=True)
 
 # 合并所有epochs数据
 epochs = mne.concatenate_epochs([
-    epochs1,
-    epochs2,
+    epochs1,  # [:30],
+    epochs2,  # [:30],
 ])
 # epochs = epochs[:200]
 print(epochs)
@@ -133,6 +134,9 @@ labels = mne.read_labels_from_annot(
 )
 labels = labels[:-2]
 
+# ! Use less labels for testing
+# labels = labels[:3]
+
 y = epochs.events[:, -1]
 
 scores_all_regions = {}
@@ -165,6 +169,10 @@ for label in tqdm(labels):
     )
 
     scores_all_regions[label] = scores
+    fname = OUTPUT_DIR / 'regions' / f'scores_{label.name}.json'
+    fname.parent.mkdir(exist_ok=True, parents=True)
+    json.dump(scores.tolist(), open(fname, 'w'))
+    logger.info(f'Saved scores for {label.name} to {fname}')
 
 
 print(scores_all_regions)
@@ -173,9 +181,15 @@ for label, scores in scores_all_regions.items():
 
 # %%
 fname = OUTPUT_DIR / 'scores_all_regions.json'
-_obj = {label: scores.tolist() for label, scores in scores_all_regions.items()}
+_obj = {label.name: scores.tolist()
+        for label, scores in scores_all_regions.items()}
 with open(fname, 'w') as f:
     json.dump(_obj, f)
+logger.info(f'Saved scores for all regions to {fname}')
+
+fname = OUTPUT_DIR / 'scores_all_regions.dumps'
+with open(fname, 'wb') as f:
+    pickle.dump(scores_all_regions, f)
 logger.info(f'Saved scores for all regions to {fname}')
 
 # %% ---- 2026-04-03 ------------------------
