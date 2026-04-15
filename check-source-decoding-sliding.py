@@ -67,6 +67,7 @@ plt.title('Peak AUC')
 plt.savefig(OUTPUT_DIR / 'peak_auc.png')
 # plt.show()
 
+# %%
 plt.clf()
 sns.violinplot(table, x='mode', y='delay', hue='hemi')
 plt.title('Peak AUC Delay')

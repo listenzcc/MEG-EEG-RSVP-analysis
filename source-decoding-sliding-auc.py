@@ -24,8 +24,11 @@ from mne.datasets import fetch_fsaverage
 from mne.decoding import SlidingEstimator, cross_val_multiscore, Vectorizer
 from sklearn.svm import SVC
 from sklearn.pipeline import make_pipeline
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
+
+from list_labels import read_average_labels
 from util.easy_imports import *
 
 # %%
@@ -42,7 +45,7 @@ DATA_DIR = Path(f'output/decoding-step-1/{MODE}-{SUBJ}')
 assert DATA_DIR.exists(), f'{DATA_DIR} does not exist'
 
 # %%
-OUTPUT_DIR = Path(f'output/source-decoding-sliding-auc/{MODE}-{SUBJ}')
+OUTPUT_DIR = Path(f'output/visual-source-decoding-sliding-auc/{MODE}-{SUBJ}')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %% ---- 2026-04-03 ------------------------
@@ -51,6 +54,10 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %% ---- 2026-04-03 ------------------------
 # Play ground
+labels = read_average_labels('PALS_B12_Visuotopic')
+print(labels)
+
+# %% ----------------------------------------
 # target
 epochs1 = mne.read_epochs(DATA_DIR / 'epochs-1-epo.fif', preload=True)
 # non-target
@@ -127,13 +134,6 @@ stcs = mne.minimum_norm.apply_inverse_epochs(
 # %%
 # ==== LABEL EXTRACTION ====
 
-labels = mne.read_labels_from_annot(
-    subject='fsaverage',
-    parc='aparc.a2009s',
-    subjects_dir=subjects_dir
-)
-labels = labels[:-2]
-
 # ! Use less labels for testing
 # labels = labels[:3]
 
@@ -148,6 +148,7 @@ for label in tqdm(labels):
     clf = make_pipeline(
         Vectorizer(),
         StandardScaler(),
+        PCA(n_components=0.95),  # 保留95%的方差
         SVC(kernel='rbf')
     )
 
