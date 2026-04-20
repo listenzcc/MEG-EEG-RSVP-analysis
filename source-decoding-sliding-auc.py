@@ -148,17 +148,17 @@ for label in tqdm(labels):
     clf = make_pipeline(
         Vectorizer(),
         StandardScaler(),
-        PCA(n_components=0.95),  # 保留95%的方差
+        # PCA(n_components=0.95),  # 保留95%的方差
         SVC(kernel='rbf')
     )
 
     # 10-fold CV
-    cv = StratifiedKFold(n_splits=10, shuffle=True)
+    cv = StratifiedKFold(n_splits=5, shuffle=True)
 
     time_decod = SlidingEstimator(
         clf,
         scoring='roc_auc',
-        n_jobs=-1
+        n_jobs=2
     )
 
     scores = cross_val_multiscore(
@@ -166,7 +166,7 @@ for label in tqdm(labels):
         mat,
         y,
         cv=cv,
-        n_jobs=-1
+        n_jobs=2
     )
 
     scores_all_regions[label] = scores

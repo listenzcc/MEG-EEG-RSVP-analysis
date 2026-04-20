@@ -21,10 +21,13 @@ Functions:
 from util.easy_imports import *
 
 # %%
-DATA_DIR = Path('./output/source-decoding-sliding-auc')
-assert DATA_DIR.is_dir(), f'{DATA_DIR} does not exist'
+# DATA_DIR = Path('./output/source-decoding-sliding-auc-withoutPCA')
+# assert DATA_DIR.is_dir(), f'{DATA_DIR} does not exist'
+# OUTPUT_DIR = Path('./output/source-decoding-sliding-auc-withoutPCA')
 
-OUTPUT_DIR = Path('./output/source-decoding-sliding-auc')
+DATA_DIR = Path('./output/visual-source-decoding-sliding-auc')
+assert DATA_DIR.is_dir(), f'{DATA_DIR} does not exist'
+OUTPUT_DIR = Path('./output/visual-source-decoding-sliding-auc')
 
 # %% ---- 2026-04-13 ------------------------
 # Function and class

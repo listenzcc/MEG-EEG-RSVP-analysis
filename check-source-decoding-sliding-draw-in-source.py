@@ -21,26 +21,13 @@ Functions:
 import pickle
 from mne.datasets import fetch_fsaverage
 from util.easy_imports import *
+from list_labels import read_average_labels
 
 # %%
-DATA_DIR = Path('./output/source-decoding-sliding-auc')
+DATA_DIR = Path('./output/visual-source-decoding-sliding-auc')
 
 # %% ---- 2026-04-14 ------------------------
 # Function and class
-
-
-def read_average_labels():
-    # 1. 准备模板数据（使用fsaverage模板）
-    print("下载fsaverage模板...")
-    fs_dir = fetch_fsaverage(verbose=False)
-    subjects_dir = os.path.dirname(fs_dir)
-    labels = mne.read_labels_from_annot(
-        subject='fsaverage',
-        parc='aparc.a2009s',
-        subjects_dir=subjects_dir
-    )
-    labels = labels[:-2]
-    return labels
 
 
 def find_files():
@@ -293,7 +280,7 @@ def add_subtraction_mode(table):
 
 # %% ---- 2026-04-14 ------------------------
 # Play ground
-labels = read_average_labels()
+labels = read_average_labels('PALS_B12_Visuotopic')
 files_table = find_files()
 files_table
 
