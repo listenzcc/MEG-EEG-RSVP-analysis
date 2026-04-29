@@ -9,28 +9,29 @@ which python
 python --version
 
 # script=pipeline/decoding.1.raw.to.epochs.py
-script=source-decoding-sliding-auc.py
+# script=source-decoding-sliding-auc.py
+script=decoding-trial.py
 
 mode=EEG
-python $script S01 $mode 
-python $script S02 $mode 
-python $script S03 $mode 
-python $script S04 $mode 
-python $script S05 $mode 
-python $script S06 $mode 
-python $script S07 $mode 
-python $script S08 $mode 
-python $script S09 $mode 
-python $script S10 $mode
+python $script --subj S01 --mode $mode 
+python $script --subj S02 --mode $mode 
+python $script --subj S03 --mode $mode 
+python $script --subj S04 --mode $mode 
+python $script --subj S05 --mode $mode 
+python $script --subj S06 --mode $mode 
+python $script --subj S07 --mode $mode 
+python $script --subj S08 --mode $mode 
+python $script --subj S09 --mode $mode 
+python $script --subj S10 --mode $mode
 
 mode=MEG
-python $script S01 $mode 
-python $script S02 $mode 
-python $script S03 $mode 
-python $script S04 $mode 
-python $script S05 $mode 
-python $script S06 $mode 
-python $script S07 $mode 
-python $script S08 $mode 
-python $script S09 $mode 
-python $script S10 $mode
+python $script --subj S01 --mode $mode 
+python $script --subj S02 --mode $mode 
+python $script --subj S03 --mode $mode 
+python $script --subj S04 --mode $mode 
+python $script --subj S05 --mode $mode 
+python $script --subj S06 --mode $mode 
+python $script --subj S07 --mode $mode 
+python $script --subj S08 --mode $mode 
+python $script --subj S09 --mode $mode 
+python $script --subj S10 --mode $mode
