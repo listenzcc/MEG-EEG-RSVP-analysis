@@ -10,7 +10,8 @@ python --version
 
 # script=pipeline/decoding.1.raw.to.epochs.py
 # script=source-decoding-sliding-auc.py
-script=decoding-trial.py
+# script=decoding-trial.py
+script=decoding-trial-124.py
 
 mode=EEG
 python $script --subj S01 --mode $mode 
