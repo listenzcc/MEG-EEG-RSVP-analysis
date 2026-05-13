@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2026-05-06 ------------------------
 # Requirements and constants
+from sklearn.metrics import roc_auc_score
 from util.easy_imports import *
 
 # %%
@@ -28,27 +29,56 @@ assert DATA_DIR.is_dir(), 'Not found DATA_DIR'
 # Function and class
 
 
+def mk_table(data_dir: Path, condition: str = 'default'):
+    files = sorted(data_dir.rglob('*.json'))
+    df = []
+    for p in tqdm(files):
+        mode, subj = p.parent.name.split('-', 2)
+        obj = json.load(open(p))
+        report = obj['classification_report']['macro avg']
+        pred_proba = np.array(obj['pred_proba'])[:, 0]
+        y_true = np.array(obj['y_true']) == 1
+        auc = roc_auc_score(y_true, pred_proba)
+        acc = obj['accuracy']
+
+        report.update({
+            'mode': mode,
+            'subj': subj,
+            'auc': auc,
+            'acc': acc
+        })
+        df.append(report)
+    table = pd.DataFrame(df)
+    table['condition'] = condition
+    return table
+
+
 # %% ---- 2026-05-06 ------------------------
 # Play ground
-files = sorted(DATA_DIR.rglob('*.json'))
-print(files)
-df = []
-for p in tqdm(files):
-    mode, subj = p.parent.name.split('-', 2)
-    obj = json.load(open(p))
-    report = obj['classification_report']['macro avg']
-    report.update({
-        'mode': mode,
-        'subj': subj
-    })
-    df.append(report)
-table = pd.DataFrame(df)
+# table = mk_table(DATA_DIR)
+table = pd.concat([
+    mk_table(Path('./output/decoding-trial'), '12'),
+    mk_table(Path('./output/decoding-trial-124'), '124'),
+])
+table.reset_index()
 print(table.head())
 
 # %%
-# sns.barplot(table, x='mode', y='f1-score', hue='mode')
-sns.violinplot(table, x='mode', y='f1-score', hue='mode')
+sns.boxplot(table, x='condition', hue='mode', y='acc')
+plt.title('ACC')
+plt.savefig('./output/decoding-acc.png')
 plt.show()
+
+sns.boxplot(table, x='condition', hue='mode', y='auc')
+plt.title('AUC')
+plt.savefig('./output/decoding-auc.png')
+plt.show()
+
+sns.boxplot(table, x='condition', hue='mode', y='f1-score')
+plt.title('F1 score (macro avg)')
+plt.savefig('./output/decoding-f1-score.png')
+plt.show()
+
 
 # %% ---- 2026-05-06 ------------------------
 # Pending
