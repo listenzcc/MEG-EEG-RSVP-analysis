@@ -18,9 +18,17 @@ Functions:
 
 # %% ---- 2026-05-15 ------------------------
 # Requirements and constants
+
+from matplotlib.backends.backend_pdf import PdfPages
 from util.easy_imports import *
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.datasets import fetch_fsaverage
+
+# print(__IPYTHON__)
+
+# %%
+OUTPUT_DIR = Path('./output/comparison-ERPs-with-without-artificial-removal')
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # %% ---- 2026-05-15 ------------------------
 # Function and class
@@ -103,7 +111,7 @@ def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8
 
 # %% ---- 2026-05-15 ------------------------
 # Play ground
-mode = 'MEG'  # 'MEG' or 'EEG'
+mode = 'EEG'  # 'MEG' or 'EEG'
 
 cond_1_path = Path(f'./output/step-1-subjects-average/{mode}/1-epo-ave.fif')
 cond_2_path = Path(f'./output/step-1-subjects-average/{mode}/2-epo-ave.fif')
@@ -117,17 +125,123 @@ evoked_2 = mne.read_evokeds(cond_2_path)[0]
 evoked_3 = mne.read_evokeds(cond_3_path)[0]
 evoked_1p = mne.read_evokeds(cond_1p_path)[0]
 
-print(evoked_1, evoked_2, evoked_3, evoked_1p)
+print([evoked_1, evoked_2, evoked_3, evoked_1p])
 
-# Source estimation
-stc = source_estimation_evoked(evoked_1)
-brain = stc.plot(hemi='both')
-input('Press enter to terminate.')
+# %%
+l_freq, h_freq = None, 8
+filter_args = (l_freq, h_freq)
+figsize = (8, 4)
+fs = 200  # Hz
+
+# Define frequencies for Morlet wavelets (e.g., 2–40 Hz, 0.5 Hz steps)
+freqs = np.arange(1, 31, 0.5)   # 2 to 40 Hz in 0.5 Hz steps
+n_cycles = freqs / 2.0          # number of cycles increases with frequency
+
+
+def better_fig(fig, name='name'):
+    fig.set_size_inches(*figsize)
+    fig.suptitle(name)
+    return fig
+
+
+balls = {
+    'Target (Raw)':
+    dict(
+        evoked=evoked_1.copy(),
+        filter_args=(None, 8),
+        picks=['MZO01'] if mode == 'MEG' else ['Oz']
+    ),
+    'Target (Proj)':
+    dict(
+        evoked=evoked_1p.copy(),
+        filter_args=(None, 8),
+        picks=['MZO01'] if mode == 'MEG' else ['Oz']
+    ),
+    'Keypress':
+    dict(
+        evoked=evoked_3.copy(),
+        filter_args=(None, 8),
+        picks=['MLC42'] if mode == 'MEG' else ['C3']
+    ),
+    'NonTarget (10)':
+    dict(
+        evoked=evoked_2.copy(),
+        filter_args=(8, 12),
+        picks=['MZO01'] if mode == 'MEG' else ['Oz']
+    ),
+    'NonTarget (20)':
+    dict(
+        evoked=evoked_2.copy(),
+        filter_args=(18, 22),
+        picks=['MZO01'] if mode == 'MEG' else ['Oz']
+    ),
+}
+
+with PdfPages(OUTPUT_DIR / f'{mode}.pdf') as pdf:
+
+    import matplotlib
+    matplotlib.use('pdf')  # before importing pyplot # noqa
+
+    def append_fig(fig):
+        pdf.savefig(fig, bbox_inches='tight')
+        plt.close(fig)
+
+    for name, ball in balls.items():
+        name = f'{mode} | {name}'
+        evoked = ball['evoked']
+        # picks = ball['picks']
+        evoked.filter(*ball['filter_args'])
+
+        p, _ = evoked.get_peak(mode='abs')
+        picks = [p]
+
+        fig = evoked.plot_joint(times='peaks', show=False)
+        fig.suptitle(name)
+        append_fig(fig)
+
+        fig = evoked.plot(gfp=True, spatial_colors=True,
+                          hline=[0.0], show=False)
+        fig.suptitle(name)
+        append_fig(fig)
+
+        fig = evoked.plot(picks=picks, show=False)
+        fig.suptitle(f'{name} | {picks}')
+        append_fig(fig)
+
+        tfr = evoked.compute_tfr(
+            method='morlet',
+            freqs=freqs,
+            n_cycles=n_cycles,
+            decim=1,
+            picks=picks
+        )
+
+        # tfr is an instance of AverageTFR
+        # Plot power (dB scale, baseline corrected)
+        tfr.plot(
+            title=f'{name} | Morlet TFR | {picks}',
+            mode='db',  # decibel conversion
+            cmap='RdBu_r',
+            show=False
+        )
+        fig = plt.gcf()
+        fig.suptitle(f'{name} | Morlet TFR | {picks}')
+        append_fig(fig)
+
+plt.show()
+
+# %% Source estimation
+
+# stc = source_estimation_evoked(evoked_1)
+# brain = stc.plot(hemi='both')
+# input('Press enter to terminate.')
 
 
 # %% ---- 2026-05-15 ------------------------
 # Pending
 
-
 # %% ---- 2026-05-15 ------------------------
 # Pending
+# %%
+
+# %%
