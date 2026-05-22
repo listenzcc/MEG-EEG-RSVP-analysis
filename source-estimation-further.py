@@ -67,11 +67,11 @@ print(evoked)
 # 4. 创建正向算子（需要设置电极位置）
 # 计算电极位置与模板的配准
 # 使用标准电极位置配准到fsaverage
-montage = evoked.get_montage()
-if montage is None:
-    print("evoked没有电极位置信息，使用标准1020系统")
-    montage = mne.channels.make_standard_montage('standard_1020')
-    evoked.set_montage(montage)
+# montage = evoked.get_montage()
+# if montage is None:
+#     print("evoked没有电极位置信息，使用标准1020系统")
+#     montage = mne.channels.make_standard_montage('standard_1020')
+#     evoked.set_montage(montage)
 
 # 5. 计算正向解
 print("计算正向解...")

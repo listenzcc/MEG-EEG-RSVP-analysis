@@ -31,17 +31,22 @@ from mne.datasets import fetch_fsaverage
 OUTPUT_DIR = Path('./output/comparison-ERPs-with-without-artificial-removal')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# %%
+# Ensure fsaverage is available and use the standard fsaverage BEM/source space.
+fs_dir = fetch_fsaverage(verbose=False)
+subjects_dir = os.path.dirname(fs_dir)
+
+
+# %%
+
 # %% ---- 2026-05-15 ------------------------
 # Function and class
 
 
-def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8, baseline=(None, 0.0)):
+def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8, baseline=(None, 0.0), use_eye_cov=False):
     """Compute a source estimate for an MNE Evoked using fsaverage BEM."""
     evoked = evoked.copy()
 
-    # Ensure fsaverage is available and use the standard fsaverage BEM/source space.
-    fs_dir = fetch_fsaverage(verbose=False)
-    subjects_dir = os.path.dirname(fs_dir)
     trans = 'fsaverage'
     src_fname = os.path.join(fs_dir, 'bem', 'fsaverage-ico-5-src.fif')
     bem_fname = os.path.join(
@@ -78,25 +83,26 @@ def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8
     if tmax is None:
         tmax = min(0.0, evoked.times[-1])
 
-    baseline_evoked = evoked.copy().crop(tmin, tmax)
-    baseline_data = baseline_evoked.data
-    cov = mne.Covariance(
-        data=np.cov(baseline_data),
-        names=evoked.info['ch_names'],
-        bads=[],
-        projs=[],
-        nfree=baseline_data.shape[1],
-    )
-
     # Use eye covariance if no baseline data is available (not recommended).
     # Used for SSVEP in all times.
-    cov = mne.Covariance(
-        data=np.eye(len(evoked.info['ch_names'])),  # --- IGNORE ---
-        names=evoked.info['ch_names'],
-        bads=[],
-        projs=[],
-        nfree=baseline_data.shape[1],
-    )
+    baseline_evoked = evoked.copy().crop(tmin, tmax)
+    baseline_data = baseline_evoked.data
+    if use_eye_cov:
+        cov = mne.Covariance(
+            data=np.eye(len(evoked.info['ch_names'])),  # --- IGNORE ---
+            names=evoked.info['ch_names'],
+            bads=[],
+            projs=[],
+            nfree=baseline_data.shape[1],
+        )
+    else:
+        cov = mne.Covariance(
+            data=np.cov(baseline_data),
+            names=evoked.info['ch_names'],
+            bads=[],
+            projs=[],
+            nfree=baseline_data.shape[1],
+        )
 
     inverse_operator = make_inverse_operator(
         evoked.info,
@@ -114,6 +120,22 @@ def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8
         method=method,
         pick_ori=None,
     )
+
+    # Remove all the values from the unknown areas in aparc_sub atlas.
+    # The offset is needed since the labels are concatenated from both hemispheres.
+    # The offset value is the number of vertices in the left hemisphere,
+    # which is the same as the number of vertices in the right hemisphere in fsaverage.
+    parc = 'aparc_sub'
+    labels_parc = mne.read_labels_from_annot(
+        'fsaverage', parc=parc, subjects_dir=subjects_dir)
+    labels_parc_df = pd.DataFrame([(e.name, e)
+                                   for e in labels_parc], columns=['name', 'label'])
+    labels_parc_df.set_index('name', inplace=True)
+    stc1 = stc.in_label(labels_parc_df.loc['unknown-lh', 'label'])
+    stc2 = stc.in_label(labels_parc_df.loc['unknown-rh', 'label'])
+    offset = len(stc.vertices[0])
+    for v in np.concat((stc1.vertices[0], stc2.vertices[1] + offset)):
+        stc.data[v, :] = 0
 
     stc.subject = 'fsaverage'
     stc.subjects_dir = subjects_dir
@@ -188,78 +210,52 @@ balls = {
     ),
 }
 
-name = 'NonTarget (10)'
-ball = balls[name]
-
-name = f'{mode} | {name}'
-evoked = ball['evoked']
-# picks = ball['picks']
-evoked.filter(*ball['filter_args'])
+# %%
+analysis_on_what_condition = 'NonTarget (10)'
+analysis_on_what_condition = 'Keypress'
+analysis_on_what_condition = 'Target (Proj)'
+# analysis_on_what_condition = 'Target (Raw)'
 
 # %%
-hdata = hilbert(evoked.data, axis=-1)
-hdata = np.abs(hdata) ** 2
-print(hdata.shape)
+# NonTarget (10)
+if analysis_on_what_condition == 'NonTarget (10)':
+    name = 'NonTarget (10)'
+    ball = balls[name]
+
+    name = f'{mode} | {name}'
+    evoked = ball['evoked']
+    evoked.filter(*ball['filter_args'])
+
+    hdata = hilbert(evoked.data, axis=-1)
+    hdata = np.abs(hdata) ** 2
+    print(hdata.shape)
+
+    evo = evoked.copy()
+    evo.data = hdata
+    evoked = evo
+
+    # Prevent Customized Reference in EEG since it is not allowed in inverse solution.
+    if mode == 'EEG':
+        evoked.set_eeg_reference('average', projection=True)
+        assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
+
+    stc = source_estimation_evoked(evoked, use_eye_cov=True)
+    stc.plot(hemi='both', title=name)
 
 # %%
-evo = evoked.copy()
-evo.data = hdata
-# evo.plot(gfp=True, spatial_colors=True, hline=[0.0], show=False)
-# evo.plot_joint(times='peaks', show=False)
-# plt.show()
-evoked = evo
+if analysis_on_what_condition in ['Keypress', 'Target (Proj)', 'Target (Raw)']:
+    name = analysis_on_what_condition
+    ball = balls[name]
+
+    name = f'{mode} | {name}'
+    evoked = ball['evoked']
+    evoked.filter(*ball['filter_args'])
+
+    stc = source_estimation_evoked(evoked, use_eye_cov=True)
+    stc.plot(hemi='both', title=name)
+
 
 # %%
-
-
-# %%
-
-
-# Prevent Customized Reference in EEG is not allowed in inverse solution.
-if mode == 'EEG':
-    evoked.set_eeg_reference('average', projection=True)
-    assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
-
-stc = source_estimation_evoked(evoked)
-# stc.copy().filter(8, 12)   # 默认边界处理适合大多数情况
-stc.plot(hemi='both', title=name)
-
-# # 1. 计算瞬时能量 (沿时间轴)
-# analytic_signals = hilbert(stc.data, axis=-1)  # 复数解析信号
-# instantaneous_amplitude = np.abs(analytic_signals)      # 包络
-# instantaneous_energy = instantaneous_amplitude ** 2     # 瞬时能量
-
-# # 2. 构建新的 SourceEstimate 对象（保留原时间信息）
-# stc_energy = mne.SourceEstimate(
-#     data=instantaneous_energy,
-#     vertices=stc.vertices,
-#     tmin=stc.tmin,
-#     tstep=stc.tstep,
-#     subject=stc.subject
-# )
-
-# # 3. 可视化
-# # 方式一：播放时间滑动条，可看每个时刻的能量分布
-# stc_energy.plot(
-#     hemi='both', title='Instantaneous Energy (8-12 Hz)', time_viewer=True)
-
-if False:
-    # 2. 计算每个顶点的能量 (平均功率)
-    power = np.mean(stc.data ** 2, axis=1)   # shape (n_vertices,)
-    # 3. 构造新的单时间点 SourceEstimate 用于绘图
-    #    vertices 和 subject 信息与原 stc 相同
-    stc_power = mne.SourceEstimate(
-        data=power[:, np.newaxis],          # 扩展为 (n_vertices, 1)
-        vertices=stc.vertices,
-        tmin=0,                             # 任意时间值
-        tstep=1,                            # 单位任意，不影响绘图
-        subject=stc.subject        # 如果有 subject 信息
-    )
-
-    stc_power.plot(hemi='both', title=name)
-
-
-# stc.plot() is non-blocking, so we need this to keep the plot open until we're done.
 input('Press enter to terminate.')
 exit(0)
 
