@@ -1,11 +1,11 @@
 """
-File: decoding-sliding-auc-result.py
+File: check-decoding-sliding-auc.py
 Author: Chuncheng Zhang
 Date: 2026-04-03
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    Get results for the decoding-sliding-auc.py
+    Check results for the decoding-sliding-auc.py and decoding-sliding-auc-remove-artificial.py. 
 
 Functions:
     1. Requirements and constants
@@ -22,6 +22,7 @@ from util.easy_imports import *
 
 # %%
 DATA_DIR = Path(f'output/decoding-sliding-auc/')
+DATA_DIR = Path(f'./output/decoding-sliding-auc-remove-artificial/')
 assert DATA_DIR.exists(), f'{DATA_DIR} does not exist'
 
 OUTPUT_DIR = DATA_DIR
