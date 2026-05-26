@@ -19,6 +19,8 @@ Functions:
 # %% ---- 2026-05-15 ------------------------
 # Requirements and constants
 
+from statsmodels.stats.multitest import fdrcorrection
+from scipy.stats import norm, median_abs_deviation
 from scipy.signal import hilbert
 from matplotlib.backends.backend_pdf import PdfPages
 from util.easy_imports import *
@@ -142,6 +144,67 @@ def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8
     return stc
 
 
+def z_to_p(z_scores):
+    return 2 * (1 - norm.cdf(np.abs(z_scores)))
+
+
+def fdr_corrected_mask(p_values, q=0.05):
+    p_flat = p_values.ravel()
+    reject, _ = fdrcorrection(p_flat, alpha=q)
+    return reject.reshape(p_values.shape)
+
+
+def convert_into_zscore(stc):
+    '''
+    Convert the source estimate data into z-scores using median and MAD.
+    This is a robust method to identify significant activations while mitigating the influence of outliers.
+
+    Args:
+        stc (mne.SourceEstimate): An MNE SourceEstimate object containing the source data to be converted.
+
+    Returns:
+        mne.SourceEstimate: The input SourceEstimate object with its data converted into z-scores
+    '''
+
+    print(
+        f'Converting source estimate {stc} into z-scores using median and MAD...')
+    data = stc.data
+    values = data.ravel()
+    # 稳健估计背景分布
+    median_val = np.median(values)
+    # 或使用 np.median(np.abs(values - median_val))
+    mad_val = median_abs_deviation(values)
+
+    # 避免 MAD 为零（极端情况）
+    if mad_val == 0:
+        mad_val = 1e-8
+
+    # 计算每个时空点的 z 分数
+    z_scores = (data - median_val) / mad_val
+
+    stc.data = z_scores
+    return stc
+
+
+def statistic_to_stc(stc):
+    '''
+    Convert the source estimate data into z-scores and apply FDR correction to identify significant activations.
+    This function combines the robust z-score conversion with FDR correction to control for multiple comparisons.
+
+    Args:
+        stc (mne.SourceEstimate): An MNE SourceEstimate object containing the source data
+
+    Returns:
+        mne.SourceEstimate: The input SourceEstimate object with its data converted into z-scores and non-significant activations set to zero
+    '''
+
+    stc = convert_into_zscore(stc)
+    p_values = z_to_p(stc.data)
+    mask = fdr_corrected_mask(p_values, q=0.05)
+    stc.data[~mask] = 0
+    return stc
+
+
 # %% ---- 2026-05-15 ------------------------
 # Play ground
 mode = 'MEG'  # 'MEG' or 'EEG'
@@ -213,8 +276,14 @@ balls = {
 # %%
 analysis_on_what_condition = 'NonTarget (10)'
 analysis_on_what_condition = 'Keypress'
-analysis_on_what_condition = 'Target (Proj)'
+# analysis_on_what_condition = 'Target (Proj)'
 # analysis_on_what_condition = 'Target (Raw)'
+
+# %%
+stc_plot_kwargs = {
+    'hemi': 'both',
+    'surface': 'flat'
+}
 
 # %%
 # NonTarget (10)
@@ -240,7 +309,8 @@ if analysis_on_what_condition == 'NonTarget (10)':
         assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
 
     stc = source_estimation_evoked(evoked, use_eye_cov=True)
-    stc.plot(hemi='both', title=name)
+    statistic_to_stc(stc)
+    stc.plot(title=name, **stc_plot_kwargs)
 
 # %%
 if analysis_on_what_condition in ['Keypress', 'Target (Proj)', 'Target (Raw)']:
@@ -252,7 +322,8 @@ if analysis_on_what_condition in ['Keypress', 'Target (Proj)', 'Target (Raw)']:
     evoked.filter(*ball['filter_args'])
 
     stc = source_estimation_evoked(evoked, use_eye_cov=True)
-    stc.plot(hemi='both', title=name)
+    statistic_to_stc(stc)
+    stc.plot(title=name, **stc_plot_kwargs)
 
 
 # %%
