@@ -321,6 +321,11 @@ if analysis_on_what_condition in ['Keypress', 'Target (Proj)', 'Target (Raw)']:
     evoked = ball['evoked']
     evoked.filter(*ball['filter_args'])
 
+    # Prevent Customized Reference in EEG since it is not allowed in inverse solution.
+    if mode == 'EEG':
+        evoked.set_eeg_reference('average', projection=True)
+        assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
+
     stc = source_estimation_evoked(evoked, use_eye_cov=True)
     statistic_to_stc(stc)
     stc.plot(title=name, **stc_plot_kwargs)
