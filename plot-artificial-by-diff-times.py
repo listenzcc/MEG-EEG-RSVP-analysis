@@ -21,12 +21,14 @@ Functions:
 from util.easy_imports import *
 
 # %%
-# MODE = 'EEG'
+MODE = 'EEG'
 MODE = 'MEG'
 
 
 # %%
 DATA_DIR = Path('./output/step-1')
+OUTPUT_DIR = Path('./output/artificial-by-diff-times')
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # %% ---- 2026-06-01 ------------------------
@@ -92,13 +94,16 @@ print(epochs_slow)
 evoked_quick = epochs_quick.average()
 evoked_slow = epochs_slow.average()
 
+evoked_quick.save(OUTPUT_DIR / f'{MODE}-evoked-quick-by-diff-times-ave.fif')
+evoked_slow.save(OUTPUT_DIR / f'{MODE}-evoked-slow-by-diff-times-ave.fif')
+
 fig = evoked_quick.plot_joint(
     title='Quick Keypress (Delay < 0.4s)', show=False)
-fig.savefig(f'output/{MODE}-evoked-quick-by-diff-times.png')
+fig.savefig(OUTPUT_DIR / f'{MODE}-evoked-quick-by-diff-times.png')
 # plt.show()
 fig = evoked_slow.plot_joint(
     title='Slow Keypress (Delay >= 0.4s)', show=False)
-fig.savefig(f'output/{MODE}-evoked-slow-by-diff-times.png')
+fig.savefig(OUTPUT_DIR / f'{MODE}-evoked-slow-by-diff-times.png')
 # plt.show()
 
 # %% ---- 2026-06-01 ------------------------
