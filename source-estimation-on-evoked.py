@@ -33,6 +33,9 @@ parser.add_argument('--mode', type=str,
                     choices=['EEG', 'MEG'], required=True, help='Data modality: EEG or MEG')
 parser.add_argument('--file', type=str, required=True,
                     help='Evoked file path (e.g., output/EEG-evoked-quick-by-diff-times-ave.fif)')
+parser.add_argument('--output', type=str, default=None,
+                    help='Output file path for the source estimate.')
+
 args = parser.parse_args()
 
 options = args.__dict__
@@ -218,10 +221,15 @@ if options['mode'] == 'EEG':
 print(evoked.times[0], evoked.times[-1])
 
 stc = source_estimation_evoked(evoked, method='MNE', snr=3.0,
-                               loose=0.2, depth=0.8, baseline=(None, -0.25), use_eye_cov=False)
+                               loose=0.2, depth=0.8, baseline=(None, -0.35), use_eye_cov=False)
 print(stc)
 # statistic_to_stc(stc)
 brain = stc.plot(title=f'Source Estimation for {options["file"]}')
+
+if options['output'] is not None:
+    stc.save(options['output'], overwrite=True)
+    print(f'Saved source estimate to {options["output"]}')
+
 print(options['file'])
 
 brain.show()
