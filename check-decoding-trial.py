@@ -18,12 +18,9 @@ Functions:
 
 # %% ---- 2026-05-06 ------------------------
 # Requirements and constants
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score
 from util.easy_imports import *
 
-# %%
-DATA_DIR = Path('./output/decoding-trial-124')
-assert DATA_DIR.is_dir(), 'Not found DATA_DIR'
 
 # %% ---- 2026-05-06 ------------------------
 # Function and class
@@ -53,12 +50,42 @@ def mk_table(data_dir: Path, condition: str = 'default'):
     return table
 
 
+def mk_table_shallow_cnn(data_dir: Path, condition: str = 'default'):
+    collected = []
+    for folder in [e for e in data_dir.iterdir() if e.is_dir()]:
+        mode, subj = folder.name.split('-')
+        print(mode, subj)
+        for p in folder.iterdir():
+            obj = json.load(open(p))
+            dct = obj['report']['macro avg']
+            y_score = obj['y_prob']
+            y_pred = obj['y_pred']
+            y_true = obj['y_true']
+            auc = roc_auc_score(y_true=y_true, y_score=y_score)
+            acc = accuracy_score(y_true=y_true, y_pred=y_pred)
+            dct.update({
+                'mode': mode,
+                'subj': subj,
+                'auc': auc,
+                'acc': acc
+            })
+            collected.append(dct)
+
+    table = pd.DataFrame(collected)
+    table['condition'] = condition
+    return table
+
+
 # %% ---- 2026-05-06 ------------------------
 # Play ground
 # table = mk_table(DATA_DIR)
 table = pd.concat([
     mk_table(Path('./output/decoding-trial'), '12'),
     mk_table(Path('./output/decoding-trial-124'), '124'),
+    mk_table_shallow_cnn(
+        Path('./output/shallow-cnn-decoding-trial'), 'CNN-12'),
+    mk_table_shallow_cnn(
+        Path('./output/shallow-cnn-decoding-trial-124'), 'CNN-124'),
 ])
 table.reset_index()
 print(table.head())

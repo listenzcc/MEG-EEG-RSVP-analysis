@@ -1,7 +1,8 @@
 #!/usr/bin/env zsh
 
 source ~/.zshrc
-conda activate mne-analysis
+# conda activate mne-analysis
+conda activate braindecode
 
 echo -----------------------------
 echo python env
@@ -12,7 +13,11 @@ python --version
 # script=source-decoding-sliding-auc.py
 # script=decoding-trial.py
 # script=decoding-trial-124.py
-script=decoding-sliding-auc-remove-artificial.py
+# script=decoding-sliding-auc-remove-artificial.py
+
+# It requires braindecode env
+script=shallow-cnn-decoding.py
+
 
 mode=EEG
 python $script --subj S01 --mode $mode
