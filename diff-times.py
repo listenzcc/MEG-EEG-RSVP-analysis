@@ -55,9 +55,23 @@ def get_diff_delay2(times3, times1):
     return delays
 
 
+def get_diff_delay_target(times1, times3):
+    fs = 1200  # Hz
+    delays = []
+    for i, t1 in enumerate(times1):
+        times3_after_t1 = [t3 for t3 in times3 if t1 < t3]
+        if len(times3_after_t1) == 0:
+            continue  # No keypress event after this target, skip
+        closest_t3 = min(times3_after_t1, key=lambda t3: t3 - t1)
+        delay = (closest_t3 - t1) / fs
+        delays.append((i, delay))
+    return delays
+
+
 # %% ---- 2026-06-01 ------------------------
 # Play ground
-dfs = []
+dfs_keypress = []
+dfs_target = []
 for subject in tqdm(subjects):
     mode, subj = subject.split('-')
 
@@ -92,19 +106,42 @@ for subject in tqdm(subjects):
     df['index'] = [e[0] for e in delays]
     df['subject'] = subj
     df['mode'] = mode
-    dfs.append(df)
+    dfs_keypress.append(df)
 
-df = pd.concat(dfs, ignore_index=True)
-df.to_csv('output/diff-times.csv', index=False)
-display(df)
+    delays = get_diff_delay_target(epochs1.events[:, 0], epochs3.events[:, 0])
+    df = pd.DataFrame()
+    df['delay'] = [e[1] for e in delays]
+    df['index'] = [e[0] for e in delays]
+    df['subject'] = subj
+    df['mode'] = mode
+    dfs_target.append(df)
+
+
+df_keypress = pd.concat(dfs_keypress, ignore_index=True)
+df_keypress.to_csv('output/diff-times-keypress.csv', index=False)
+display(df_keypress)
+
+df_target = pd.concat(dfs_target, ignore_index=True)
+df_target.to_csv('output/diff-times-target.csv', index=False)
+display(df_target)
 
 # %%
+df = df_keypress.copy()
 df = df[df['delay'] < 1]  # Filter out delays greater than 1 second
 sns.histplot(df, x='delay', hue='mode', element='step',
              stat='density', legend=True)
 plt.xlabel('Delay (s)')
 plt.title('Distribution of Delays between Target and Keypress Events')
-plt.savefig('output/diff-times.png')
+plt.savefig('output/diff-times-keypress.png')
+plt.show()
+
+df = df_target.copy()
+df = df[df['delay'] < 1]  # Filter out delays greater than 1 second
+sns.histplot(df, x='delay', hue='mode', element='step',
+             stat='density', legend=True)
+plt.xlabel('Delay (s)')
+plt.title('Distribution of Delays between Target and Keypress Events')
+plt.savefig('output/diff-times-target.png')
 plt.show()
 
 # %%
