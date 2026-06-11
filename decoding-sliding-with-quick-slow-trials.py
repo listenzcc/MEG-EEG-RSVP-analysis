@@ -43,7 +43,8 @@ except:
     parser.add_argument('-m', '--mode', help='Mode in EEG, MEG', default=MODE)
     parser.add_argument(
         '-s', '--subj', help='Subject in S01, S02, ...', default=SUBJ)
-    parser.add_argument('-c', '--cond', help='Condition in quick, slow', default=COND)
+    parser.add_argument(
+        '-c', '--cond', help='Condition in quick, slow', default=COND)
     args = parser.parse_args()
 
 print(f'{args=}')
@@ -53,7 +54,8 @@ STEP1_DIR = Path('./output/step-1')
 
 STEP1_AVE_DIR = Path(f'output/step-1-subjects-average/{MODE}')
 
-OUTPUT_DIR = Path('./output/decoding-sliding-with-quick-slow-trials/', f'{args.mode}-{args.subj}-{args.cond}')
+OUTPUT_DIR = Path('./output/decoding-sliding-with-quick-slow-trials/',
+                  f'{args.mode}-{args.subj}-{args.cond}')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 # %% ---- 2026-06-09 ------------------------
@@ -75,12 +77,14 @@ evoked3 = mne.read_evokeds(STEP1_AVE_DIR / '3-epo-ave.fif')[0]
 
 if args.mode == 'EEG':
     kwargs = dict(n_grad=0, n_mag=0, n_eeg=1)
+    # kwargs = dict(n_grad=0, n_mag=0, n_eeg=3)
 elif args.mode == 'MEG':
     kwargs = dict(n_grad=0, n_mag=3, n_eeg=0)
 
 proj2 = mne.compute_proj_evoked(evoked2, **kwargs)
 proj3 = mne.compute_proj_evoked(evoked3, **kwargs)
 proj = proj2 + proj3
+proj = proj3
 
 epochs.add_proj(proj)
 epochs.apply_proj()
@@ -125,7 +129,8 @@ print(f'{X.shape=}, {y.shape=}')
 clf = make_pipeline(
     Vectorizer(),          # (n_channels, n_times) → (features)
     StandardScaler(),
-    SVC(kernel='rbf', probability=True)
+    # SVC(kernel='rbf', probability=False)
+    SVC(kernel='linear', probability=False)
 )
 
 time_decod = SlidingEstimator(

@@ -51,7 +51,11 @@ df
 
 # %% ---- 2026-06-09 ------------------------
 # Pending
-sns.lineplot(df, x='time', y='score', hue='mode')
+fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+sns.lineplot(df, x='time', y='score', hue='mode', ax=ax)
+ax.axvline(0.4, color='gray')
+ax.grid()
+fig.savefig(DATA_DIR / 'decoding-quick-slow-trials.png')
 plt.show()
 
 

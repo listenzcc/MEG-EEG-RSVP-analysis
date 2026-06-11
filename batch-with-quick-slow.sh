@@ -21,6 +21,7 @@ script=./decoding-sliding-with-quick-slow-trials.py
 
 conditions=(quick slow)
 modes=(EEG MEG)
+modes=(EEG)
 subjects=(S01 S02 S03 S04 S05 S06 S07 S08 S09 S10)
 
 for mode in "${modes[@]}"; do
