@@ -77,7 +77,6 @@ evoked3 = mne.read_evokeds(STEP1_AVE_DIR / '3-epo-ave.fif')[0]
 
 if args.mode == 'EEG':
     kwargs = dict(n_grad=0, n_mag=0, n_eeg=1)
-    # kwargs = dict(n_grad=0, n_mag=0, n_eeg=3)
 elif args.mode == 'MEG':
     kwargs = dict(n_grad=0, n_mag=3, n_eeg=0)
 
@@ -129,8 +128,7 @@ print(f'{X.shape=}, {y.shape=}')
 clf = make_pipeline(
     Vectorizer(),          # (n_channels, n_times) → (features)
     StandardScaler(),
-    # SVC(kernel='rbf', probability=False)
-    SVC(kernel='linear', probability=False)
+    SVC(kernel='rbf', probability=False)
 )
 
 time_decod = SlidingEstimator(
