@@ -22,7 +22,7 @@ from util.easy_imports import *
 
 # %%
 MODE = 'EEG'
-MODE = 'MEG'
+# MODE = 'MEG'
 
 
 # %%
