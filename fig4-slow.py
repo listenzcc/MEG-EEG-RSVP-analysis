@@ -1,52 +1,19 @@
-"""
-File: source-estimation-on-evoked.py
-Author: Chuncheng Zhang
-Date: 2026-06-02
-Copyright & Email: chuncheng.zhang@ia.ac.cn
+'''
+Source
+'''
 
-Purpose:
-    Source estimation for given evoked file.
+# %%
+from util.easy_imports import *
 
-Functions:
-    1. Requirements and constants
-    2. Function and class
-    3. Play ground
-    4. Pending
-    5. Pending
-"""
-
-
-# %% ---- 2026-06-02 ------------------------
-# Requirements and constants
-import argparse
 from scipy.stats import norm, median_abs_deviation
 from mne.datasets import fetch_fsaverage
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from statsmodels.stats.multitest import fdrcorrection
 
-from util.easy_imports import *
-
-# %%
-parser = argparse.ArgumentParser(
-    description='Source estimation for given evoked file.')
-parser.add_argument('--mode', type=str,
-                    choices=['EEG', 'MEG'], required=True, help='Data modality: EEG or MEG')
-parser.add_argument('--file', type=str, required=True,
-                    help='Evoked file path (e.g., output/EEG-evoked-quick-by-diff-times-ave.fif)')
-parser.add_argument('--output', type=str, default=None,
-                    help='Output file path for the source estimate.')
-
-args = parser.parse_args()
-
-options = args.__dict__
-print(f'{options=}')
 
 # %%
 fs_dir = fetch_fsaverage(verbose=False)
 subjects_dir = os.path.dirname(fs_dir)
-
-# %% ---- 2026-06-02 ------------------------
-# Function and class
 
 
 def source_estimation_evoked(evoked, method='MNE', snr=3.0, loose=0.2, depth=0.8, baseline=(None, 0.0), use_eye_cov=False):
@@ -208,40 +175,122 @@ def statistic_to_stc(stc):
     stc.data[~mask] = 0
     return stc
 
+# %%
+# Assuming you already have your STC object (e.g., from source localization)
+# stc = your_source_estimate  # shape: (n_vertices, n_times)
 
-# %% ---- 2026-06-02 ------------------------
-# Play ground
-evoked = mne.read_evokeds(options['file'])[0]
 
-# Prevent Customized Reference in EEG since it is not allowed in inverse solution.
-if options['mode'] == 'EEG':
-    evoked.set_eeg_reference('average', projection=True)
-    assert not evoked.info['custom_ref_applied'], "仍然有自定义参考"
+# Load the PALS_B12_Brodmann atlas
+# This atlas is available in the fsaverage subject's label directory
+atlas_file = os.path.join(subjects_dir, 'fsaverage',
+                          'label', 'PALS_B12_Brodmann.gcs')
+labels = mne.read_labels_from_annot('fsaverage', parc='PALS_B12_Brodmann',
+                                    subjects_dir=subjects_dir)
 
-print(evoked.times[0], evoked.times[-1])
+# Get label names
+label_names = [label.name for label in labels]
 
-stc = source_estimation_evoked(evoked, method='MNE', snr=3.0,
-                               loose=0.2, depth=0.8, baseline=(None, -0.35), use_eye_cov=False)
+# %%
+'''
+Slow response
+'''
+
+# evoked = mne.read_evokeds(
+#     './output/artificial-by-diff-times/MEG-evoked-proj-slow-by-diff-times-ave.fif')[0]
+# print(evoked)
+
+# stc = source_estimation_evoked(evoked, method='MNE', snr=3.0,
+#                                loose=0.2, depth=0.8, baseline=(None, -0.35), use_eye_cov=False)
+
+# stc.save('./output/slow.stc')
+
+stc = mne.read_source_estimate('./output/slow.stc')
+stc.subject = 'fsaverage'
 print(stc)
-# statistic_to_stc(stc)
-brain = stc.plot(title=f'Source Estimation for {options["file"]}')
 
-if options['output'] is not None:
-    stc.save(options['output'], overwrite=True)
-    print(f'Saved source estimate to {options["output"]}')
+# %%
 
-print(options['file'])
-
-brain.show()
+# Extract average time series for each region
+label_tc = mne.extract_label_time_course(stc, labels, src=None, mode='mean',
+                                         allow_empty=True)
 
 
-plt.plot([1, 2, 3], [4, 5, 6])  # Dummy plot to keep the window open
-plt.show(block=True)
-# input("Press Enter to quit ...")
+# Create dictionary for easy access
+label_tc_dict = dict(zip(label_names, label_tc))
 
-# %% ---- 2026-06-02 ------------------------
-# Pending
+# Print shape to verify
+print(f"Number of labels: {len(label_names)}")
+print(f"Time course shape: {label_tc.shape}")  # (n_labels, n_times)
 
+# %%
+times = stc.times
+fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+names = [
+    'Brodmann.19',
+    'Brodmann.39',
+    'Brodmann.40',
+]
+for k, v in label_tc_dict.items():
+    name, hemi = k.split('-', 1)
+    if not name in names:
+        continue
+    if name.startswith('Brodmann') and hemi == 'lh':
+        ax = axes[0]
+        ax.plot(times, v, label=k)
+        ax.axvline(0.0, linestyle='--', color='gray')
+        ax.axvline(0.25, linestyle='--', color='gray')
+        ax.axvline(0.4, linestyle='--', color='gray')
+        ax.axvline(0.53, linestyle='--', color='gray')
+        ax.axvline(0.63, linestyle='--', color='gray')
+    if name.startswith('Brodmann') and hemi == 'rh':
+        ax = axes[1]
+        ax.plot(times, v, label=k)
+        ax.axvline(0.0, linestyle='--', color='gray')
+        ax.axvline(0.25, linestyle='--', color='gray')
+        ax.axvline(0.4, linestyle='--', color='gray')
+        ax.axvline(0.53, linestyle='--', color='gray')
+        ax.axvline(0.63, linestyle='--', color='gray')
 
-# %% ---- 2026-06-02 ------------------------
-# Pending
+axes[0].set_ylim((0, 5e-12))
+axes[1].set_ylim((0, 5e-12))
+axes[0].set_title('lh')
+axes[1].set_title('rh')
+axes[0].legend()
+axes[1].legend()
+fig.suptitle('Slow')
+fig.tight_layout()
+fig.savefig('./collect-results/fig4/MEG-slow-timeseries.png')
+plt.show()
+
+# %%
+brain_kwargs = dict(alpha=1.0, background="white",
+                    cortex="low_contrast", size=(1920+200, 1080))
+output_directory = Path('./collect-results/fig4')
+output_directory.mkdir(exist_ok=True, parents=True)
+
+time_points_to_show = [-0.1, 0.0, 0.25, 0.4, 0.53, 0.63]
+
+for i, t in enumerate(time_points_to_show):
+    brain = stc.plot(
+        initial_time=t,
+        hemi="split",
+        views=['lateral'],
+        surface='inflated',
+        subjects_dir=subjects_dir,
+        transparent=True,
+        show_traces=False,
+        colorbar=i < 0,  # Show colorbar on negative seconds
+        brain_kwargs=brain_kwargs
+    )
+    brain.add_text(0.1, 0.9, f'MEG-slow-{t}', 'title', font_size=16)
+
+    # 1. 截图
+    screenshot = brain.screenshot()
+
+    # 2. 保存图像
+    brain.save_image(output_directory / f'MEG-slow-t{t}.png')
+    brain.close()
+
+# %%
+
+# %%
